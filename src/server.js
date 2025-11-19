@@ -1,24 +1,16 @@
 import express from "express";
-import mysql from "mysql2";
-import dotenv from "dotenv";
-
-dotenv.config();
+import publicRoutes from "./routes/publicRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import cors from "cors";
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
-const db = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME
-}).promise();
+app.use("/api", publicRoutes);
 
-app.get("/categories", async (req, res) => {
-  const [rows] = await db.query("SELECT * FROM categories");
-  res.json(rows);
-});
+app.use("/api/admin", adminRoutes);
 
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(process.env.PORT || 3000, () =>
+  console.log("Server running")
+);
