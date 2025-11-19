@@ -15,12 +15,12 @@ export const getCategoryById = async (req, res) => {
 };
 
 export const addCategory = async (req, res) => {
-  const { name_en, name_ru } = req.body;
+  const { name_en, name_ru, name_kg} = req.body;
   const img = req.file ? req.file.path : null;
 
   const [result] = await db.query(
-    "INSERT INTO categories (name_en, name_ru, img) VALUES (?, ?, ?)",
-    [name_en, name_ru, img]
+    "INSERT INTO categories (name_en, name_ru, name_kg, img) VALUES (?, ?, ?, ?)",
+    [name_en, name_ru, name_kg, img]
   );
 
   res.json({ id: result.insertId, message: "Category added" });
