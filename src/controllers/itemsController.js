@@ -1,10 +1,52 @@
 import db from "../db.js";
 
+import db from "../db.js";
+import translationService from "../services/translationService.js";
+
 export const getItemsByCategory = async (req, res) => {
-  const { id } = req.params;
-  const [rows] = await db.query("SELECT * FROM items WHERE category_id = ?", [id]);
-  res.json(rows);
+  try {
+    const { id } = req.params;
+    const lang = req.query.lang || "en";
+
+    const [rows] = await db.query(
+      "SELECT * FROM items WHERE category_id = ?",
+      [id]
+    );
+
+    // If English, return raw items (fast and no translation needed)
+    if (lang === "en") {
+      return res.json(rows);
+    }
+
+    const translatedItems = [];
+
+    for (const item of rows) {
+      const newItem = { ...item };
+
+      // Only translate description + ingredients
+      newItem.description = await translationService.translateText(
+        item.description,
+        lang,
+        "en"
+      );
+
+      newItem.ingredients = await translationService.translateText(
+        item.ingredients,
+        lang,
+        "en"
+      );
+
+      translatedItems.push(newItem);
+    }
+
+    res.json(translatedItems);
+
+  } catch (error) {
+    console.error("Translation error:", error);
+    res.status(500).json({ error: "Failed to load translated items" });
+  }
 };
+
 
 export const addItem = async (req, res) => {
   const { category_id, title_en, title_ru, title_kg, description, ingredients, price } = req.body;
