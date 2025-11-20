@@ -4,7 +4,6 @@ import translationService from '../services/translationService.js';
 
 const router = express.Router();
 
-// Get all categories
 router.get('/categories', async (req, res) => {
   try {
     const [categories] = await db.execute('SELECT * FROM categories ORDER BY id');
@@ -15,7 +14,6 @@ router.get('/categories', async (req, res) => {
   }
 });
 
-// Get single category
 router.get('/categories/:id', async (req, res) => {
   try {
     const [categories] = await db.execute('SELECT * FROM categories WHERE id = ?', [req.params.id]);
@@ -29,44 +27,35 @@ router.get('/categories/:id', async (req, res) => {
   }
 });
 
-// Get items by category ID
-// Get items by category ID (with optional translation)
 router.get('/items/:categoryId', async (req, res) => {
   try {
-    const lang = req.query.lang || "en";  // frontend should send ?lang=en/ru/kg
+    const lang = req.query.lang || "en";
 
     const [items] = await db.execute(
       'SELECT * FROM items WHERE category_id = ? ORDER BY id',
       [req.params.categoryId]
     );
 
-    // Translate description + ingredients ONLY
-    const translatedItems = await Promise.all(
-      items.map(async (item) => {
-        const updatedItem = { ...item };
+    // Use pre-translated fields from database (no real-time translation needed)
+    const localizedItems = items.map(item => {
+      const localizedItem = {
+        id: item.id,
+        category_id: item.category_id,
+        img: item.img,
+        // Use the pre-translated titles from database
+        title: item[`title_${lang}`] || item.title_en,
+        // Use pre-translated descriptions
+        description: item[`description_${lang}`] || item.description_en,
+        // Use pre-translated ingredients
+        ingredients: item[`ingredients_${lang}`] || item.ingredients_en,
+        // Use pre-translated prices
+        price: item[`price_${lang}`] || item.price_en
+      };
 
-        if (item.description) {
-          updatedItem.description = await translationService.translateText(
-            item.description,
-            lang,
-            "en"
-          );
-        }
+      return localizedItem;
+    });
 
-        if (item.ingredients) {
-          updatedItem.ingredients = await translationService.translateText(
-            item.ingredients,
-            lang,
-            "en"
-          );
-        }
-
-        // DO NOT translate title/category/price
-        return updatedItem;
-      })
-    );
-
-    res.json(translatedItems);
+    res.json(localizedItems);
 
   } catch (error) {
     console.error("Error fetching items:", error);
@@ -74,8 +63,6 @@ router.get('/items/:categoryId', async (req, res) => {
   }
 });
 
-
-// Get all items (for testing)
 router.get('/items', async (req, res) => {
   try {
     const [items] = await db.execute('SELECT * FROM items ORDER BY category_id, id');
@@ -86,17 +73,16 @@ router.get('/items', async (req, res) => {
   }
 });
 
-// Translation endpoint
 router.post('/translate', async (req, res) => {
   try {
     const { text, targetLang, sourceLang = 'en' } = req.body;
-    
+
     if (!text || !targetLang) {
       return res.status(400).json({ error: 'Text and target language are required' });
     }
 
     const translatedText = await translationService.translateText(text, targetLang, sourceLang);
-    
+
     res.json({
       originalText: text,
       translatedText: translatedText,

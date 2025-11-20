@@ -9,23 +9,23 @@ router.use(adminAuth);
 
 router.post('/categories', upload.single('img'), async (req, res) => {
   try {
-    const { name_en, name_ru, name_kg } = req.body;
+    const { name_en, name_ru, name_ky } = req.body;
 
-    if (!name_en || !name_ru || !name_kg) {
+    if (!name_en || !name_ru || !name_ky) {
       return res.status(400).json({ error: 'All language names are required' });
     }
 
     const imgPath = req.file ? `/uploads/${req.file.filename}` : null;
 
     const [result] = await db.execute(
-      'INSERT INTO categories (name_en, name_ru, name_kg, img) VALUES (?, ?, ?, ?)',
-      [name_en, name_ru, name_kg, imgPath]
+      'INSERT INTO categories (name_en, name_ru, name_ky, img) VALUES (?, ?, ?, ?)',
+      [name_en, name_ru, name_ky, imgPath]
     );
 
     res.json({
       id: result.insertId,
       message: 'Category added successfully',
-      category: { id: result.insertId, name_en, name_ru, name_kg, img: imgPath }
+      category: { id: result.insertId, name_en, name_ru, name_ky, img: imgPath }
     });
   } catch (error) {
     console.error('Error adding category:', error);
@@ -40,13 +40,19 @@ router.post('/items', upload.single('img'), async (req, res) => {
       category_id,
       title_en,
       title_ru,
-      title_kg,
-      description,
-      ingredients,
-      price
+      title_ky,
+      description_en,
+      description_ru,
+      description_ky,
+      ingredients_en,
+      ingredients_ru,
+      ingredients_ky,
+      price_en,
+      price_ru,
+      price_ky
     } = req.body;
 
-    if (!category_id || !title_en || !title_ru || !title_kg || !price) {
+    if (!category_id || !title_en || !title_ru || !title_ky || !price_en) {
       return res.status(400).json({ error: 'Required fields: category_id, titles in all languages, and price' });
     }
 
@@ -54,9 +60,17 @@ router.post('/items', upload.single('img'), async (req, res) => {
 
     const [result] = await db.execute(
       `INSERT INTO items
-      (category_id, title_en, title_ru, title_kg, description, ingredients, price, img) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [category_id, title_en, title_ru, title_kg, description || '', ingredients || '', price, imgPath]
+      (category_id, title_en, title_ru, title_ky,
+       description_en, description_ru, description_ky,
+       ingredients_en, ingredients_ru, ingredients_ky,
+       price_en, price_ru, price_ky, img)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        category_id, title_en, title_ru, title_ky,
+        description_en || '', description_ru || '', description_ky || '',
+        ingredients_en || '', ingredients_ru || '', ingredients_ky || '',
+        price_en, price_ru || price_en, price_ky || price_en, imgPath
+      ]
     );
 
     res.json({
@@ -65,12 +79,10 @@ router.post('/items', upload.single('img'), async (req, res) => {
       item: {
         id: result.insertId,
         category_id,
-        title_en,
-        title_ru,
-        title_kg,
-        description,
-        ingredients,
-        price,
+        title_en, title_ru, title_ky,
+        description_en, description_ru, description_ky,
+        ingredients_en, ingredients_ru, ingredients_ky,
+        price_en, price_ru, price_ky,
         img: imgPath
       }
     });
